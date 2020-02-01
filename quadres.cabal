@@ -1,0 +1,31 @@
+cabal-version:       2.4
+name:                quadres
+version:             0.1.0.0
+synopsis:            Implementation of RES in Haskell
+description:
+  Implementation of the Revised Encoding Scheme for Egyptian Hieroglypic
+  in Haskell.
+license:             MIT
+license-file:        LICENSE
+author:              Jonathan Merritt
+maintainer:          j.s.merritt@gmail.com
+copyright:           Copyright (C) 2020 The QuadRES Developers
+category:            Graphics
+extra-source-files:  CHANGELOG.md
+
+library
+  exposed-modules:     MyLib
+  -- other-modules:
+  -- other-extensions:
+  build-depends:       base ^>=4.12.0.0
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+
+executable quadres
+  main-is:             Main.hs
+  -- other-extensions:
+  hs-source-dirs:      app
+  default-language:    Haskell2010
+  build-depends:       
+      base ^>=4.12.0.0
+    , quadres
