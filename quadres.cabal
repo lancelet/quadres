@@ -45,6 +45,8 @@ test-suite quadres-test
     , quadres
     , doctest
     , hedgehog
+    , megaparsec
+    , text
 
 executable quadres
   main-is:             Main.hs

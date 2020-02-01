@@ -22,11 +22,11 @@ instance Show RealN where
 -- >>> mkRealN 5 2 5
 -- 5.25
 mkRealN
-    :: Word8  -- ^ Ones digit.
-    -> Word8  -- ^ Tenths digit.
-    -> Word8  -- ^ Hundredths digit.
+    :: Word8  -- ^ Ones digit (0-9).
+    -> Word8  -- ^ Tenths digit (0-9).
+    -> Word8  -- ^ Hundredths digit (0-9).
     -> RealN
-mkRealN a b c = (RealN . clamp 0 999) (100 * f a + 10 * f b + f c)
+mkRealN a b c = RealN (100 * f a + 10 * f b + f c)
   where
     f :: Word8 -> Word16
     f = fromIntegral . clamp 0 9
