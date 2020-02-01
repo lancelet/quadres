@@ -1,0 +1,8 @@
+cradle:
+  stack:
+    - path: ./test
+      component: "quadres:test:quadres-test"
+    - path: ./src
+      component: "quadres:lib"
+    - path: ./app
+      component: "quadres:exe:quadres"
