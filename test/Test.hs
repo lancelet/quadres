@@ -10,7 +10,8 @@ where
 import qualified Hedgehog
 import qualified Test.DocTest
 
-import qualified QuadRES.ParserTest (tests)
+import qualified QuadRES.ParserTest             ( tests )
+import qualified QuadRES.RESTest                ( tests )
 
 main :: IO ()
 main = do
@@ -24,7 +25,7 @@ runHedgehogTests = do
     putStrLn "---- Running Hedgehog Tests ----"
 
 hedgehogTests :: [Hedgehog.Group]
-hedgehogTests = [ QuadRES.ParserTest.tests ]
+hedgehogTests = [QuadRES.ParserTest.tests, QuadRES.RESTest.tests]
 
 runDocTests :: IO ()
 runDocTests = do
@@ -33,4 +34,5 @@ runDocTests = do
     putStrLn "---- Finished DocTests ----"
 
 docTests :: IO ()
-docTests = Test.DocTest.doctest ["-isrc", "src/QuadRES/Parser.hs"]
+docTests = Test.DocTest.doctest
+    ["-isrc", "src/QuadRES/Parser.hs", "src/QuadRES/RES.hs"]

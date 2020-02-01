@@ -12,6 +12,22 @@ type Parser a = Parsec Void Text a
 
 ---- Auxiliary Definitions
 
+
+---- Character Classes
+
+-- | True if a character is a non-zero digit '1'-'9'.
+--
+-- >>> isNonZeroDigit '0'
+-- False
+--
+-- >>> isNonZeroDigit '1'
+-- True
+isNonZeroDigit :: Char -> Bool
+isNonZeroDigit c = c' >= 49 && c' <= 57
+  where
+    c' :: Int
+    c' = ord c
+
 -- | True if a character is a digit '0' - '9'.
 --
 -- >>> isDigit '4'

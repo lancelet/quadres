@@ -39,6 +39,7 @@ test-suite quadres-test
   main-is:          Test.hs
   other-modules:
     QuadRES.ParserTest
+    QuadRES.RESTest
   build-depends:
       base
     , quadres
