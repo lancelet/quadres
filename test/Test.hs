@@ -7,7 +7,10 @@ module Main
     )
 where
 
+import qualified Hedgehog
 import qualified Test.DocTest
+
+import qualified QuadRES.ParserTest (tests)
 
 main :: IO ()
 main = do
@@ -15,7 +18,13 @@ main = do
     runDocTests
 
 runHedgehogTests :: IO ()
-runHedgehogTests = pure ()  -- TODO: implement Hedgehog tests
+runHedgehogTests = do
+    putStrLn "\n---- Running Hedgehog Tests ----"
+    mapM_ Hedgehog.checkParallel hedgehogTests
+    putStrLn "---- Running Hedgehog Tests ----"
+
+hedgehogTests :: [Hedgehog.Group]
+hedgehogTests = [ QuadRES.ParserTest.tests ]
 
 runDocTests :: IO ()
 runDocTests = do
