@@ -1,8 +1,39 @@
 module QuadRES.RES where
 
+import           Data.List.NonEmpty             ( NonEmpty )
 import           Data.Word                      ( Word8
                                                 , Word16
                                                 )
+
+-- | Switch argument.
+data SwitchArg
+    = SwColor Color
+    | SwShadeState ShadeState
+    | SwSep Sep
+    | SwFitState FitState
+    | SwMirrorState MirrorState
+    deriving (Eq, Show)
+
+-- | Glyph separation.
+newtype Sep = Sep RealN deriving (Eq, Show)
+
+-- | Fit state.
+data FitState
+    = Fit
+    | NoFit
+    deriving (Eq, Show)
+
+-- | Mirroring state.
+data MirrorState
+    = Mirror
+    | NoMirror
+    deriving (Eq, Show)
+
+-- | Shade state.
+data ShadeState
+    = Shade
+    | NoShade
+    deriving (Eq, Show)
 
 -- | A color.
 data Color
@@ -22,6 +53,18 @@ data Color
     | Silver
     | Teal
     | Yellow
+    deriving (Eq, Show)
+
+-- | Area shading.
+newtype ShadePattern = ShadePattern (NonEmpty Side)
+    deriving (Eq, Show)
+
+-- | Side to shade.
+data Side
+    = SideT
+    | SideB
+    | SideS
+    | SideE
     deriving (Eq, Show)
 
 -- | Real number, in the range 0.00 to 9.99.

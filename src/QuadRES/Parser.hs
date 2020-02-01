@@ -1,10 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 module QuadRES.Parser where
 
+import qualified Control.Applicative.Combinators.NonEmpty
+                                               as NonEmpty
 import           Control.Monad.Identity         ( Identity )
 import           Data.Char                      ( ord )
 import           Data.Functor                   ( ($>) )
 import           Data.Maybe                     ( fromMaybe )
+import qualified Data.Set                      as Set
 import           Data.Text                      ( Text )
 import           Data.Void                      ( Void )
 import           Data.Word                      ( Word8 )
@@ -19,28 +22,151 @@ type Parsec e s a = MP.ParsecT e s Identity a
 
 type Parser a = Parsec Void Text a
 
--- | Parse a color.
+-- | Parse a 'RES.SwitchArg'.
+--
+-- >>> MP.parseMaybe pSwitchArg "green"
+-- Just (SwColor Green)
+pSwitchArg :: Parser RES.SwitchArg
+pSwitchArg =
+    (RES.SwColor <$> pColor)
+        <|> (RES.SwShadeState <$> pShadeState)
+        <|> (RES.SwSep <$> pSep)
+        <|> (RES.SwFitState <$> pFitState)
+        <|> (RES.SwMirrorState <$> pMirrorState)
+
+-- | Parse a 'RES.FitState'.
+--
+-- >>> MP.parseMaybe pFitState "fit"
+-- Just Fit
+--
+-- >>> MP.parseMaybe pFitState "nofit"
+-- Just NoFit
+pFitState :: Parser RES.FitState
+pFitState =
+    ((MP.chunk "fit" $> RES.Fit) <|> (MP.chunk "nofit" $> RES.NoFit))
+        <?> "(fit|nofit)"
+
+-- | Parse a 'RES.MirrorState'.
+--
+-- >>> MP.parseMaybe pMirrorState "mirror"
+-- Just Mirror
+--
+-- >>> MP.parseMaybe pMirrorState "nomirror"
+-- Just NoMirror
+pMirrorState :: Parser RES.MirrorState
+pMirrorState =
+    ((MP.chunk "mirror" $> RES.Mirror) <|> (MP.chunk "nomirror" $> RES.NoMirror)
+        )
+        <?> "(mirror|nomirror)"
+
+-- | Parse a 'RES.ShadeState'.
+--
+-- >>> MP.parseMaybe pShadeState "shade"
+-- Just Shade
+--
+-- >>> MP.parseMaybe pShadeState "noshade"
+-- Just NoShade
+pShadeState :: Parser RES.ShadeState
+pShadeState =
+    ((MP.chunk "shade" $> RES.Shade) <|> (MP.chunk "noshade" $> RES.NoShade))
+        <?> "(shade|noshade)"
+
+-- | Parse a 'RES.Sep'.
+--
+-- >>> MP.parseMaybe pSep "sep=1.2"
+-- Just (Sep 1.20)
+--
+-- >>> MP.parseMaybe pSep "sep = 1.2"
+-- Nothing
+pSep :: Parser RES.Sep
+pSep = RES.Sep <$> (MP.chunk "sep=" *> pRealN) <?> "sep=<real>"
+
+-- | Parse a 'RES.Color'.
 --
 -- >>> MP.parseMaybe pColor "blue"
 -- Just Blue
 pColor :: Parser RES.Color
 pColor =
-  (MP.chunk "black" $> RES.Black)
-    <|> (MP.chunk "red" $> RES.Red)
-    <|> (MP.chunk "green" $> RES.Green)
-    <|> (MP.chunk "blue" $> RES.Blue)
-    <|> (MP.chunk "white" $> RES.White)
-    <|> (MP.chunk "aqua" $> RES.Aqua)
-    <|> (MP.chunk "fuchsia" $> RES.Fuchsia)
-    <|> (MP.chunk "gray" $> RES.Gray)
-    <|> (MP.chunk "lime" $> RES.Lime)
-    <|> (MP.chunk "maroon" $> RES.Maroon)
-    <|> (MP.chunk "navy" $> RES.Navy)
-    <|> (MP.chunk "olive" $> RES.Olive)
-    <|> (MP.chunk "purple" $> RES.Purple)
-    <|> (MP.chunk "silver" $> RES.Silver)
-    <|> (MP.chunk "teal" $> RES.Teal)
-    <|> (MP.chunk "yellow" $> RES.Yellow)
+    (   (MP.chunk "black" $> RES.Black)
+        <|> (MP.chunk "red" $> RES.Red)
+        <|> (MP.chunk "green" $> RES.Green)
+        <|> (MP.chunk "blue" $> RES.Blue)
+        <|> (MP.chunk "white" $> RES.White)
+        <|> (MP.chunk "aqua" $> RES.Aqua)
+        <|> (MP.chunk "fuchsia" $> RES.Fuchsia)
+        <|> (MP.chunk "gray" $> RES.Gray)
+        <|> (MP.chunk "lime" $> RES.Lime)
+        <|> (MP.chunk "maroon" $> RES.Maroon)
+        <|> (MP.chunk "navy" $> RES.Navy)
+        <|> (MP.chunk "olive" $> RES.Olive)
+        <|> (MP.chunk "purple" $> RES.Purple)
+        <|> (MP.chunk "silver" $> RES.Silver)
+        <|> (MP.chunk "teal" $> RES.Teal)
+        <|> (MP.chunk "yellow" $> RES.Yellow)
+        )
+        <?> "Color"
+
+-- | Parse a 'RES.ShadePattern'.
+--
+-- >>> MP.parseMaybe pShadePattern "ts"
+-- Just (ShadePattern (SideT :| [SideS]))
+pShadePattern :: Parser RES.ShadePattern
+pShadePattern = (RES.ShadePattern <$> NonEmpty.some pSide) <?> "Shade pattern"
+
+-- | Parse a 'RES.Side' to shade.
+--
+-- >>> MP.parseMaybe pSide "s"
+-- Just SideS
+pSide :: Parser RES.Side
+pSide =
+    (   (MP.single 't' $> RES.SideT)
+        <|> (MP.single 'b' $> RES.SideB)
+        <|> (MP.single 's' $> RES.SideS)
+        <|> (MP.single 'e' $> RES.SideE)
+        )
+        <?> "Side (t,b,s,e)"
+
+-- | Parse a square-bracket-terminated, comma-separated list of items.
+--
+-- >>> MP.parseMaybe (pBracketedList pRealN) "[ ]"
+-- Just []
+--
+-- >>> MP.parseMaybe (pBracketedList pRealN) "[ 1.3 ]"
+-- Just [1.30]
+--
+-- >>> MP.parseMaybe (pBracketedList pRealN) "[4.3,9.5,3.2]"
+-- Just [4.30,9.50,3.20]
+--
+-- >>> MP.parseMaybe (pBracketedList pRealN) "[ 4.3\n  , 9.5\n  , 3.2\n ]"
+-- Just [4.30,9.50,3.20]
+--
+-- >>> MP.parseMaybe (pBracketedList pRealN) "[ 9.1, ]"
+-- Nothing
+--
+-- >>> MP.parseMaybe (pBracketedList pRealN) "[,]"
+-- Nothing
+pBracketedList :: Parser a -> Parser [a]
+pBracketedList pItem = do
+    MP.single '[' $> ()
+    pWhitespace
+    items <- MP.optional (pList pItem)
+    MP.single ']' $> ()
+    pure (fromMaybe [] items)
+
+-- | Parse a comma-separated, non-empty list of items.
+pList :: Parser a -> Parser [a]
+pList pItem = do
+    pWhitespace
+    item <- pItem
+    pWhitespace
+    optComma <- MP.optional (MP.single ',')
+    case optComma of
+        Nothing -> pure [item]
+        Just _  -> (item :) <$> pList pItem
+
+-- | Gobble zero or more whitespace characters.
+pWhitespace :: Parser ()
+pWhitespace = MP.takeWhileP (Just "whitespace") isWhitespace $> ()
 
 ---- Auxiliary Definitions
 
@@ -69,15 +195,26 @@ pColor =
 -- Nothing
 -- >>> MP.parseMaybe pRealN "2.445"
 -- Nothing
+--
+-- We must parse something though:
+-- >>> MP.parseMaybe pRealN ""
+-- Nothing
 pRealN :: Parser RES.RealN
 pRealN = do
-  digit1    <- MP.option 0 pDigit
-  digit2opt <- MP.optional (MP.single '.' *> pDigit)
-  let digit2 = fromMaybe 0 digit2opt
-  digit3 <- case digit2opt of
-    Just _  -> MP.option 0 pDigit
-    Nothing -> pure 0
-  pure (RES.mkRealN digit1 digit2 digit3) <?> "Real number"
+    digit1opt <- MP.optional pDigit
+    digit2opt <- MP.optional (MP.single '.' *> pDigit)
+    -- by this point, we can have obtained "x", "x.x" or ".x"; but if both
+    -- digit1opt and digit2opt are empty then that's an error case
+    case (digit1opt, digit2opt) of
+      -- here we parsed nothing so far; so signal an error
+        (Nothing, Nothing) -> MP.failure Nothing Set.empty
+        -- here we parsed just the first digit, but no period and following digit
+        (Just d1, Nothing) -> pure (RES.mkRealN d1 0 0)
+        -- here we passed a period and a following digit so try for a third digit
+        (_      , Just d2) -> do
+            let d1 = fromMaybe 0 digit1opt
+            d3 <- MP.option 0 pDigit
+            pure (RES.mkRealN d1 d2 d3)
 
 -- | Parses a single digit into a 'Word8'.
 --
@@ -100,9 +237,9 @@ pDigit = (\c -> fromIntegral (ord c - 48)) <$> MP.satisfy isDigit <?> "Digit"
 -- True
 isNonZeroDigit :: Char -> Bool
 isNonZeroDigit c = c' >= 49 && c' <= 57
- where
-  c' :: Int
-  c' = ord c
+  where
+    c' :: Int
+    c' = ord c
 
 -- | True if a character is a digit '0' - '9'.
 --
@@ -113,9 +250,14 @@ isNonZeroDigit c = c' >= 49 && c' <= 57
 -- False
 isDigit :: Char -> Bool
 isDigit c = c' >= 48 && c' <= 57
- where
-  c' :: Int
-  c' = ord c
+  where
+    c' :: Int
+    c' = ord c
+
+-- | True if a character is whitespace.
+isWhitespace :: Char -> Bool
+isWhitespace c =
+    (c == ' ') || (c == '\t') || (c == '\n') || (c == '\r') || (c == '\f')
 
 -- $setup
 -- >>> :set -XOverloadedStrings
