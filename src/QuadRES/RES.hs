@@ -4,6 +4,7 @@ import           Data.Word                      ( Word8
                                                 , Word16
                                                 )
 
+-- | A color.
 data Color
     = Black
     | Red

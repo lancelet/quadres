@@ -3,18 +3,44 @@ module QuadRES.Parser where
 
 import           Control.Monad.Identity         ( Identity )
 import           Data.Char                      ( ord )
+import           Data.Functor                   ( ($>) )
 import           Data.Maybe                     ( fromMaybe )
 import           Data.Text                      ( Text )
 import           Data.Void                      ( Void )
 import           Data.Word                      ( Word8 )
 import qualified Text.Megaparsec               as MP
-import           Text.Megaparsec                ( (<?>) )
+import           Text.Megaparsec                ( (<?>)
+                                                , (<|>)
+                                                )
 
 import qualified QuadRES.RES                   as RES
 
 type Parsec e s a = MP.ParsecT e s Identity a
 
 type Parser a = Parsec Void Text a
+
+-- | Parse a color.
+--
+-- >>> MP.parseMaybe pColor "blue"
+-- Just Blue
+pColor :: Parser RES.Color
+pColor =
+  (MP.chunk "black" $> RES.Black)
+    <|> (MP.chunk "red" $> RES.Red)
+    <|> (MP.chunk "green" $> RES.Green)
+    <|> (MP.chunk "blue" $> RES.Blue)
+    <|> (MP.chunk "white" $> RES.White)
+    <|> (MP.chunk "aqua" $> RES.Aqua)
+    <|> (MP.chunk "fuchsia" $> RES.Fuchsia)
+    <|> (MP.chunk "gray" $> RES.Gray)
+    <|> (MP.chunk "lime" $> RES.Lime)
+    <|> (MP.chunk "maroon" $> RES.Maroon)
+    <|> (MP.chunk "navy" $> RES.Navy)
+    <|> (MP.chunk "olive" $> RES.Olive)
+    <|> (MP.chunk "purple" $> RES.Purple)
+    <|> (MP.chunk "silver" $> RES.Silver)
+    <|> (MP.chunk "teal" $> RES.Teal)
+    <|> (MP.chunk "yellow" $> RES.Yellow)
 
 ---- Auxiliary Definitions
 
@@ -45,13 +71,13 @@ type Parser a = Parsec Void Text a
 -- Nothing
 pRealN :: Parser RES.RealN
 pRealN = do
-    digit1    <- MP.option 0 pDigit
-    digit2opt <- MP.optional (MP.single '.' *> pDigit)
-    let digit2 = fromMaybe 0 digit2opt
-    digit3 <- case digit2opt of
-        Just _  -> MP.option 0 pDigit
-        Nothing -> pure 0
-    pure (RES.mkRealN digit1 digit2 digit3)
+  digit1    <- MP.option 0 pDigit
+  digit2opt <- MP.optional (MP.single '.' *> pDigit)
+  let digit2 = fromMaybe 0 digit2opt
+  digit3 <- case digit2opt of
+    Just _  -> MP.option 0 pDigit
+    Nothing -> pure 0
+  pure (RES.mkRealN digit1 digit2 digit3) <?> "Real number"
 
 -- | Parses a single digit into a 'Word8'.
 --
@@ -74,9 +100,9 @@ pDigit = (\c -> fromIntegral (ord c - 48)) <$> MP.satisfy isDigit <?> "Digit"
 -- True
 isNonZeroDigit :: Char -> Bool
 isNonZeroDigit c = c' >= 49 && c' <= 57
-  where
-    c' :: Int
-    c' = ord c
+ where
+  c' :: Int
+  c' = ord c
 
 -- | True if a character is a digit '0' - '9'.
 --
@@ -87,9 +113,9 @@ isNonZeroDigit c = c' >= 49 && c' <= 57
 -- False
 isDigit :: Char -> Bool
 isDigit c = c' >= 48 && c' <= 57
-  where
-    c' :: Int
-    c' = ord c
+ where
+  c' :: Int
+  c' = ord c
 
 -- $setup
 -- >>> :set -XOverloadedStrings
