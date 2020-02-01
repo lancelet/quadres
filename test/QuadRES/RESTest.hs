@@ -4,8 +4,8 @@ Description : Tests for the QuadRES.RES module.
 -}
 {-# LANGUAGE OverloadedStrings #-}
 module QuadRES.RESTest
-  ( tests
-  )
+    ( tests
+    )
 where
 
 import qualified Hedgehog                      as H
@@ -21,10 +21,10 @@ tests = H.Group "QuadRES.RES"
 
 prop_mkRealN_trip :: H.Property
 prop_mkRealN_trip = H.property $ do
-  ones       <- H.forAll $ Gen.word8 $ Range.linear 0 9
-  tenths     <- H.forAll $ Gen.word8 $ Range.linear 0 9
-  hundredths <- H.forAll $ Gen.word8 $ Range.linear 0 9
-  let (o', t', h') = RES.realNDigits (RES.mkRealN ones tenths hundredths)
-  o' === ones
-  t' === tenths
-  h' === hundredths
+    ones       <- H.forAll $ Gen.word8 $ Range.linear 0 9
+    tenths     <- H.forAll $ Gen.word8 $ Range.linear 0 9
+    hundredths <- H.forAll $ Gen.word8 $ Range.linear 0 9
+    let (o', t', h') = RES.realNDigits (RES.mkRealN ones tenths hundredths)
+    o' === ones
+    t' === tenths
+    h' === hundredths
