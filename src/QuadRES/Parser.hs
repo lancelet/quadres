@@ -45,13 +45,13 @@ type Parser a = Parsec Void Text a
 -- Nothing
 pRealN :: Parser RES.RealN
 pRealN = do
-  digit1    <- MP.option 0 pDigit
-  digit2opt <- MP.optional (MP.single '.' *> pDigit)
-  let digit2 = fromMaybe 0 digit2opt
-  digit3 <- case digit2opt of
-    Just _  -> MP.option 0 pDigit
-    Nothing -> pure 0
-  pure (RES.mkRealN digit1 digit2 digit3)
+    digit1    <- MP.option 0 pDigit
+    digit2opt <- MP.optional (MP.single '.' *> pDigit)
+    let digit2 = fromMaybe 0 digit2opt
+    digit3 <- case digit2opt of
+        Just _  -> MP.option 0 pDigit
+        Nothing -> pure 0
+    pure (RES.mkRealN digit1 digit2 digit3)
 
 -- | Parses a single digit into a 'Word8'.
 --
@@ -74,9 +74,9 @@ pDigit = (\c -> fromIntegral (ord c - 48)) <$> MP.satisfy isDigit <?> "Digit"
 -- True
 isNonZeroDigit :: Char -> Bool
 isNonZeroDigit c = c' >= 49 && c' <= 57
- where
-  c' :: Int
-  c' = ord c
+  where
+    c' :: Int
+    c' = ord c
 
 -- | True if a character is a digit '0' - '9'.
 --
@@ -87,9 +87,9 @@ isNonZeroDigit c = c' >= 49 && c' <= 57
 -- False
 isDigit :: Char -> Bool
 isDigit c = c' >= 48 && c' <= 57
- where
-  c' :: Int
-  c' = ord c
+  where
+    c' :: Int
+    c' = ord c
 
 -- $setup
 -- >>> :set -XOverloadedStrings
