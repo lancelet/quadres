@@ -17,6 +17,8 @@ library
   -- other-modules:
   -- other-extensions:
   exposed-modules:
+    QuadRES.Gardiner
+    QuadRES.Mnemonics
     QuadRES.Parser
     QuadRES.RES
   hs-source-dirs:      src
