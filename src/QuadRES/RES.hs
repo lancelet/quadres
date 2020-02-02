@@ -15,6 +15,18 @@ data GlyphID
     | GlyphIDShortString Char
     deriving (Eq, Show)
 
+-- | Rotation of a glyph.
+newtype Rotate = Rotate Word16 deriving (Eq, Show)
+
+-- | Uniform scaling of a glyph.
+newtype Scale = Scale RealN deriving (Eq, Show)
+
+-- | Scaling of a glyph in the x-direction.
+newtype ScaleX = ScaleX RealN deriving (Eq, Show)
+
+-- | Scaling of a glyph in the y-direction.
+newtype ScaleY = ScaleY RealN deriving (Eq, Show)
+
 -- | Multiple switches.
 newtype Switches = Switches [Switch] deriving (Eq, Show)
 
@@ -87,11 +99,24 @@ data Side
 --
 -- Internally, the number is stored as a 'Word16' in hundredths precision
 -- (ie. it has the range 0 to 999).
-newtype RealN = RealN Word16 deriving Eq
+newtype RealN = RealN Word16 deriving (Eq, Ord)
 
 instance Show RealN where
     show r = show ones <> "." <> show tenths <> show hundredths
         where (ones, tenths, hundredths) = realNDigits r
+
+instance Num RealN where
+    (RealN a) + (RealN b) =
+        let c = a + b in if c <= 999 then RealN c else error "RealN overflow"
+    (RealN a) - (RealN b)
+        | b <= a    = RealN (b - a)
+        | otherwise = error "RealN underfloat: there are no negative values"
+    (*)    = error "multiplication is not yet implemented"
+    negate = error
+        "negate is not defined for RealN: there are no negative values"
+    abs = id
+    signum r@(RealN x) = if x == 0 then r else RealN 1
+    fromInteger i = RealN (fromIntegral (i * 100))
 
 -- | Creates an instance of a 'RealN' number, clamping digits as appropriate.
 --

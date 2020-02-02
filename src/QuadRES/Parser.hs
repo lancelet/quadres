@@ -89,6 +89,34 @@ pMnemonic = pMnemonic' (Map.keysSet Mnemonics.mnemonics)
             then pure candidate
             else MP.failure Nothing Set.empty
 
+-- | Parse a 'RES.Rotate'.
+--
+-- >>> MP.parseMaybe pRotate "rotate=30"
+-- Just (Rotate 30)
+pRotate :: Parser RES.Rotate
+pRotate = RES.Rotate <$> (MP.chunk "rotate=" *> pNat)
+
+-- | Parse a 'RES.Scale'.
+--
+-- >>> MP.parseMaybe pScale "scale=2.4"
+-- Just (Scale 2.40)
+pScale :: Parser RES.Scale
+pScale = RES.Scale <$> (MP.chunk "scale=" *> pNonZeroRealN)
+
+-- | Parse a 'RES.ScaleX'.
+--
+-- >>> MP.parseMaybe pScaleX "scalex=1.1"
+-- Just (ScaleX 1.10)
+pScaleX :: Parser RES.ScaleX
+pScaleX = RES.ScaleX <$> (MP.chunk "scalex=" *> pNonZeroRealN)
+
+-- | Parse a 'RES.ScaleY'.
+--
+-- >>> MP.parseMaybe pScaleY "scaley=5"
+-- Just (ScaleY 5.00)
+pScaleY :: Parser RES.ScaleY
+pScaleY = RES.ScaleY <$> (MP.chunk "scaley=" *> pNonZeroRealN)
+
 -- | Parse whitespace and optional switches.
 ws :: Parser RES.Switches
 ws = pWhitespace *> pSwitches
@@ -390,6 +418,12 @@ pRealN = do
             let d1 = fromMaybe 0 digit1opt
             d3 <- MP.option 0 pDigit
             pure (RES.mkRealN d1 d2 d3)
+
+-- | Parse a non-zero real number.
+pNonZeroRealN :: Parser RES.RealN
+pNonZeroRealN = do
+    candidate <- pRealN
+    if candidate > 0 then pure candidate else MP.failure Nothing Set.empty
 
 -- | Parses a single digit into a 'Word8'.
 --
