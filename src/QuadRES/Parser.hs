@@ -267,6 +267,45 @@ pWhitespace = MP.takeWhileP (Just "whitespace") isWhitespace $> ()
 
 ---- Auxiliary Definitions
 
+-- | Parse a natural number, in the range 0 to 999 inclusive.
+--
+-- >>> MP.parseMaybe pNat "1"
+-- Just 1
+--
+-- >>> MP.parseMaybe pNat "12"
+-- Just 12
+--
+-- >>> MP.parseMaybe pNat "123"
+-- Just 123
+--
+-- >>> MP.parseMaybe pNat "0"
+-- Just 0
+--
+-- >>> MP.parseMaybe pNat "999"
+-- Just 999
+--
+-- >>> MP.parseMaybe pNat ""
+-- Nothing
+--
+-- >>> MP.parseMaybe pNat "1000"
+-- Nothing
+pNat :: Parser Word16
+pNat = do
+    digit1    <- pDigit
+    digit2opt <- MP.optional pDigit
+    case digit2opt of
+        Nothing     -> pure . fromIntegral $ digit1
+        Just digit2 -> do
+            digit3opt <- MP.optional pDigit
+            case digit3opt of
+                Nothing ->
+                    pure $ 10 * fromIntegral digit1 + fromIntegral digit2
+                Just digit3 ->
+                    pure
+                        $ (100 * fromIntegral digit1)
+                        + (10 * fromIntegral digit2)
+                        + fromIntegral digit3
+
 -- | Parse a non-zero natural number, in the range 1 to 999 inclusive.
 --
 -- >>> MP.parseMaybe pNonZeroNat "1"
