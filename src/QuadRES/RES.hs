@@ -6,13 +6,14 @@ import           Data.Word                      ( Word8
                                                 , Word16
                                                 )
 
-{-
+-- | Identifier for a glyph.
 data GlyphID
-    = GlyphIDGardiner Text Word8 (Maybe Char)
+    = GlyphIDGardiner Text Word16 (Maybe Char)
     | GlyphIDMnemonic Text
     | GlyphIDOpen
     | GlyphIDClose
--}
+    | GlyphIDShortString Char
+    deriving (Eq, Show)
 
 -- | Multiple switches.
 newtype Switches = Switches [Switch] deriving (Eq, Show)

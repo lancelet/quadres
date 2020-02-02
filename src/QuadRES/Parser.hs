@@ -11,7 +11,9 @@ import qualified Data.Set                      as Set
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as Text
 import           Data.Void                      ( Void )
-import           Data.Word                      ( Word8 )
+import           Data.Word                      ( Word8
+                                                , Word16
+                                                )
 import qualified Text.Megaparsec               as MP
 import           Text.Megaparsec                ( (<?>)
                                                 , (<|>)
@@ -22,6 +24,29 @@ import qualified QuadRES.RES                   as RES
 type Parsec e s a = MP.ParsecT e s Identity a
 
 type Parser a = Parsec Void Text a
+
+-- | Parse a 'RES.GlyphID'.
+--
+-- >>> MP.parseMaybe pGlyphID "G14"
+-- Just (GlyphIDGardiner "G" 14 Nothing)
+--
+-- >>> MP.parseMaybe pGlyphID "W24a"
+-- Just (GlyphIDGardiner "W" 24 (Just 'a'))
+pGlyphID :: Parser RES.GlyphID
+pGlyphID =
+    (   RES.GlyphIDGardiner
+    <$> pCategory
+    <*> pNonZeroNat
+    <*> MP.optional pLowerLetter
+    )
+  where
+    pCategory :: Parser Text
+    pCategory =
+        (Text.singleton <$> MP.satisfy (isCharInRange 'A' 'I'))
+            <|> (Text.singleton <$> MP.satisfy (isCharInRange 'K' 'Z'))
+            <|> MP.chunk "Aa"
+            <|> MP.chunk "NL"
+            <|> MP.chunk "NU"
 
 -- | Parse whitespace and optional switches.
 ws :: Parser RES.Switches
@@ -201,6 +226,45 @@ pWhitespace = MP.takeWhileP (Just "whitespace") isWhitespace $> ()
 
 ---- Auxiliary Definitions
 
+-- | Parse a non-zero natural number, in the range 1 to 999 inclusive.
+--
+-- >>> MP.parseMaybe pNonZeroNat "1"
+-- Just 1
+--
+-- >>> MP.parseMaybe pNonZeroNat "12"
+-- Just 12
+--
+-- >>> MP.parseMaybe pNonZeroNat "123"
+-- Just 123
+--
+-- >>> MP.parseMaybe pNonZeroNat "999"
+-- Just 999
+--
+-- >>> MP.parseMaybe pNonZeroNat "0"
+-- Nothing
+--
+-- >>> MP.parseMaybe pNonZeroNat ""
+-- Nothing
+--
+-- >>> MP.parseMaybe pNonZeroNat "1000"
+-- Nothing
+pNonZeroNat :: Parser Word16
+pNonZeroNat = do
+    digit1    <- pNonZeroDigit
+    digit2opt <- MP.optional pDigit
+    case digit2opt of
+        Nothing     -> pure . fromIntegral $ digit1
+        Just digit2 -> do
+            digit3opt <- MP.optional pDigit
+            case digit3opt of
+                Nothing ->
+                    pure $ 10 * fromIntegral digit1 + fromIntegral digit2
+                Just digit3 ->
+                    pure
+                        $ (100 * fromIntegral digit1)
+                        + (10 * fromIntegral digit2)
+                        + fromIntegral digit3
+
 -- | Parse a real number, in the range '0.00' to '9.99'.
 --
 -- This accepts numbers with two decimal digits:
@@ -237,7 +301,7 @@ pRealN = do
     -- by this point, we can have obtained "x", "x.x" or ".x"; but if both
     -- digit1opt and digit2opt are empty then that's an error case
     case (digit1opt, digit2opt) of
-      -- here we parsed nothing so far; so signal an error
+        -- here we parsed nothing so far; so signal an error
         (Nothing, Nothing) -> MP.failure Nothing Set.empty
         -- we parsed just the first digit, but no period and following digit
         (Just d1, Nothing) -> pure (RES.mkRealN d1 0 0)
@@ -256,6 +320,45 @@ pRealN = do
 -- Nothing
 pDigit :: Parser Word8
 pDigit = (\c -> fromIntegral (ord c - 48)) <$> MP.satisfy isDigit <?> "Digit"
+
+-- | Parses a single non-zero digit into a 'Word8'.
+--
+-- >>> MP.parseMaybe pNonZeroDigit "4"
+-- Just 4
+--
+-- >>> MP.parseMaybe pNonZeroDigit "0"
+-- Nothing
+pNonZeroDigit :: Parser Word8
+pNonZeroDigit =
+    (\c -> fromIntegral (ord c - 48))
+        <$> MP.satisfy isNonZeroDigit
+        <?> "Non-Zero Digit"
+
+-- | Parses a single lower-case letter.
+pLowerLetter :: Parser Char
+pLowerLetter = MP.satisfy isLowerLetter <?> "Lower-case Letter"
+
+-- | Parses a short string.
+--
+-- A short string is a string of length 1. It's equivalent to a Char in
+-- Haskell, but it is delimited by double quotes in RES.
+--
+-- >>> MP.parseMaybe pShortString "\"Z\""
+-- Just 'Z'
+--
+-- >>> MP.parseMaybe pShortString "\"\""
+-- Nothing
+--
+-- >>> MP.parseMaybe pShortString "\"ab\""
+-- Nothing
+pShortString :: Parser Char
+pShortString = (MP.single '"' *> pPrintable <* MP.single '"')
+  where
+    pPrintable :: Parser Char
+    pPrintable =
+        MP.satisfy isPrintable
+            <|> (MP.chunk "\\\"" $> '"')
+            <|> (MP.chunk "\\\\" $> '\\')
 
 -- | Parses a string.
 --
@@ -317,6 +420,19 @@ isWhitespace :: Char -> Bool
 isWhitespace c =
     (c == ' ') || (c == '\t') || (c == '\n') || (c == '\r') || (c == '\f')
 
+-- | True if a character is a lower-case letter.
+--
+-- >>> isLowerLetter 'a'
+-- True
+--
+-- >>> isLowerLetter 'z'
+-- True
+--
+-- >>> isLowerLetter 'Q'
+-- False
+isLowerLetter :: Char -> Bool
+isLowerLetter = isCharInRange 'a' 'z'
+
 -- | True if a character is allowed as part of a string.
 --
 -- This excludes un-escaped quotes and backslashes.
@@ -347,6 +463,18 @@ isPrintable c = isLatin1 c && (c /= '"') && (c /= '\\')
 -- True
 isLatin1 :: Char -> Bool
 isLatin1 c = (c' >= 0x0020 && c' <= 0x007E) || (c' >= 0x00A0 && c' <= 0x00FF)
+  where
+    c' :: Int
+    c' = ord c
+
+-- | Check if a character is within a supplied inclusive range.
+isCharInRange
+    :: Char   -- ^ Minimum of range (inclusive).
+    -> Char   -- ^ Maximum of range (inclusive).
+    -> Char   -- ^ Character to check.
+    -> Bool   -- ^ True if the character is in the range.
+isCharInRange rangeMin rangeMax c =
+    (c' >= ord rangeMin) && (c' <= ord rangeMax)
   where
     c' :: Int
     c' = ord c
