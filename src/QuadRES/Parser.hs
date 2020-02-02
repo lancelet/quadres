@@ -32,6 +32,15 @@ type Parser a = Parsec Void Text a
 --
 -- >>> MP.parseMaybe pGlyphID "W24a"
 -- Just (GlyphIDGardiner "W" 24 (Just 'a'))
+--
+-- >>> MP.parseMaybe pGlyphID "open"
+-- Just GlyphIDOpen
+--
+-- >>> MP.parseMaybe pGlyphID "close"
+-- Just GlyphIDClose
+--
+-- >>> MP.parseMaybe pGlyphID "\"[\""
+-- Just (GlyphIDShortString '[')
 pGlyphID :: Parser RES.GlyphID
 pGlyphID =
     (   RES.GlyphIDGardiner
@@ -39,6 +48,9 @@ pGlyphID =
     <*> pNonZeroNat
     <*> MP.optional pLowerLetter
     )
+    <|> (MP.chunk "open" $> RES.GlyphIDOpen)
+    <|> (MP.chunk "close" $> RES.GlyphIDClose)
+    <|> (RES.GlyphIDShortString <$> pShortString)
   where
     pCategory :: Parser Text
     pCategory =
