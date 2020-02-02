@@ -140,6 +140,24 @@ pScaleX = RES.ScaleX <$> (MP.chunk "xscale=" *> pNonZeroRealN)
 pScaleY :: Parser RES.ScaleY
 pScaleY = RES.ScaleY <$> (MP.chunk "yscale=" *> pNonZeroRealN)
 
+-- | Parse a 'RES.Notes', which is multiple notes.
+--
+-- >>> MP.parseMaybe pNotes "^\"a\" ^\"b\""
+-- Just (Notes [Note "a" [],Note "b" []])
+pNotes :: Parser RES.Notes
+pNotes = RES.Notes <$> MP.many pNote
+
+-- | Parse a 'RES.Note'.
+--
+-- >>> MP.parseMaybe pNote "^\"This is a note\"[blue]  "
+-- Just (Note "This is a note" [Blue])
+pNote :: Parser RES.Note
+pNote =
+    RES.Note
+        <$> (MP.single '^' *> pString)
+        <*> MP.option [] (pBracketedList pColor)
+        <*  pWhitespace
+
 -- | Parse whitespace and optional switches.
 ws :: Parser RES.Switches
 ws = pWhitespace *> pSwitches

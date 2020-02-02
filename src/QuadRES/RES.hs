@@ -42,6 +42,12 @@ newtype ScaleX = ScaleX RealN deriving (Eq, Show)
 -- | Scaling of a glyph in the y-direction.
 newtype ScaleY = ScaleY RealN deriving (Eq, Show)
 
+-- | Notes.
+newtype Notes = Notes [Note] deriving (Eq, Show)
+
+-- | Note.
+data Note = Note Text [Color] deriving (Eq, Show)
+
 -- | Multiple switches.
 newtype Switches = Switches [Switch] deriving (Eq, Show)
 
