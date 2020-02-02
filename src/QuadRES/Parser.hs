@@ -44,13 +44,13 @@ type Parser a = Parsec Void Text a
 pGlyphID :: Parser RES.GlyphID
 pGlyphID =
     (   RES.GlyphIDGardiner
-    <$> pCategory
-    <*> pNonZeroNat
-    <*> MP.optional pLowerLetter
-    )
-    <|> (MP.chunk "open" $> RES.GlyphIDOpen)
-    <|> (MP.chunk "close" $> RES.GlyphIDClose)
-    <|> (RES.GlyphIDShortString <$> pShortString)
+        <$> pCategory
+        <*> pNonZeroNat
+        <*> MP.optional pLowerLetter
+        )
+        <|> (MP.chunk "open" $> RES.GlyphIDOpen)
+        <|> (MP.chunk "close" $> RES.GlyphIDClose)
+        <|> (RES.GlyphIDShortString <$> pShortString)
   where
     pCategory :: Parser Text
     pCategory =
