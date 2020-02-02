@@ -7,6 +7,8 @@ import           Control.Monad.Identity         ( Identity )
 import           Data.Char                      ( ord )
 import           Data.Functor                   ( ($>) )
 import           Data.Maybe                     ( fromMaybe )
+import qualified Data.Map.Strict               as Map
+import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as Text
@@ -20,6 +22,7 @@ import           Text.Megaparsec                ( (<?>)
                                                 )
 
 import qualified QuadRES.RES                   as RES
+import qualified QuadRES.Mnemonics             as Mnemonics
 
 type Parsec e s a = MP.ParsecT e s Identity a
 
@@ -41,6 +44,12 @@ type Parser a = Parsec Void Text a
 --
 -- >>> MP.parseMaybe pGlyphID "\"[\""
 -- Just (GlyphIDShortString '[')
+--
+-- >>> MP.parseMaybe pGlyphID "rxyt"
+-- Just (GlyphIDMnemonic "rxyt")
+--
+-- >>> MP.parseMaybe pGlyphID "rxytfoo"
+-- Nothing
 pGlyphID :: Parser RES.GlyphID
 pGlyphID =
     (   RES.GlyphIDGardiner
@@ -51,6 +60,7 @@ pGlyphID =
         <|> (MP.chunk "open" $> RES.GlyphIDOpen)
         <|> (MP.chunk "close" $> RES.GlyphIDClose)
         <|> (RES.GlyphIDShortString <$> pShortString)
+        <|> (RES.GlyphIDMnemonic <$> pMnemonic)
   where
     pCategory :: Parser Text
     pCategory =
@@ -59,6 +69,25 @@ pGlyphID =
             <|> MP.chunk "Aa"
             <|> MP.chunk "NL"
             <|> MP.chunk "NU"
+
+-- | Parse a mnemonic.
+--
+-- The mnemonic must be in the allowed list.
+--
+-- >>> MP.parseMaybe pMnemonic "wDAt"
+-- Just "wDAt"
+--
+-- >>> MP.parseMaybe pMnemonic "wDAtf"
+-- Nothing
+pMnemonic :: Parser Text
+pMnemonic = pMnemonic' (Map.keysSet Mnemonics.mnemonics)
+  where
+    pMnemonic' :: Set Text -> Parser Text
+    pMnemonic' nameSet = do
+        candidate <- MP.takeWhile1P (Just "Mnemonic Character") isMnemonicChar
+        if Set.member candidate nameSet
+            then pure candidate
+            else MP.failure Nothing Set.empty
 
 -- | Parse whitespace and optional switches.
 ws :: Parser RES.Switches
@@ -432,6 +461,11 @@ isWhitespace :: Char -> Bool
 isWhitespace c =
     (c == ' ') || (c == '\t') || (c == '\n') || (c == '\r') || (c == '\f')
 
+-- | True if a character can appear in a mnemonic.
+isMnemonicChar :: Char -> Bool
+isMnemonicChar c =
+    isUpperLetter c || isLowerLetter c || (c == '1') || (c == '0')
+
 -- | True if a character is a lower-case letter.
 --
 -- >>> isLowerLetter 'a'
@@ -444,6 +478,16 @@ isWhitespace c =
 -- False
 isLowerLetter :: Char -> Bool
 isLowerLetter = isCharInRange 'a' 'z'
+
+-- | True if a character is an upper-case letter.
+--
+-- >>> isUpperLetter 'W'
+-- True
+--
+-- >>> isUpperLetter 'w'
+-- False
+isUpperLetter :: Char -> Bool
+isUpperLetter = isCharInRange 'A' 'Z'
 
 -- | True if a character is allowed as part of a string.
 --
