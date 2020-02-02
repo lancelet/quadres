@@ -89,6 +89,29 @@ pMnemonic = pMnemonic' (Map.keysSet Mnemonics.mnemonics)
             then pure candidate
             else MP.failure Nothing Set.empty
 
+-- | Parse a 'RES.GlyphArgs'; a list of glyph arguments.
+--
+-- >>> ga = "[rotate=90, scale=0.4]"
+-- >>> MP.parseMaybe pGlyphArgs ga
+-- Just (GlyphArgs [GlyphArgRotate (Rotate 90),GlyphArgScale (Scale 0.40)])
+pGlyphArgs :: Parser RES.GlyphArgs
+pGlyphArgs = RES.GlyphArgs <$> pBracketedList pGlyphArg
+
+-- | Parse a single 'RES.GlyphArg'.
+--
+-- >>> MP.parseMaybe pGlyphArg "ts"
+-- Just (GlyphArgShadePattern (ShadePattern (SideT :| [SideS])))
+pGlyphArg :: Parser RES.GlyphArg
+pGlyphArg =
+    (RES.GlyphArgMirrorState <$> pMirrorState)
+        <|> (RES.GlyphArgRotate <$> pRotate)
+        <|> (RES.GlyphArgScale <$> pScale)
+        <|> (RES.GlyphArgScaleX <$> pScaleX)
+        <|> (RES.GlyphArgScaleY <$> pScaleY)
+        <|> (RES.GlyphArgColor <$> pColor)
+        <|> (RES.GlyphArgShadeState <$> pShadeState)
+        <|> (RES.GlyphArgShadePattern <$> pShadePattern)
+
 -- | Parse a 'RES.Rotate'.
 --
 -- >>> MP.parseMaybe pRotate "rotate=30"
@@ -105,17 +128,17 @@ pScale = RES.Scale <$> (MP.chunk "scale=" *> pNonZeroRealN)
 
 -- | Parse a 'RES.ScaleX'.
 --
--- >>> MP.parseMaybe pScaleX "scalex=1.1"
+-- >>> MP.parseMaybe pScaleX "xscale=1.1"
 -- Just (ScaleX 1.10)
 pScaleX :: Parser RES.ScaleX
-pScaleX = RES.ScaleX <$> (MP.chunk "scalex=" *> pNonZeroRealN)
+pScaleX = RES.ScaleX <$> (MP.chunk "xscale=" *> pNonZeroRealN)
 
 -- | Parse a 'RES.ScaleY'.
 --
--- >>> MP.parseMaybe pScaleY "scaley=5"
+-- >>> MP.parseMaybe pScaleY "yscale=5"
 -- Just (ScaleY 5.00)
 pScaleY :: Parser RES.ScaleY
-pScaleY = RES.ScaleY <$> (MP.chunk "scaley=" *> pNonZeroRealN)
+pScaleY = RES.ScaleY <$> (MP.chunk "yscale=" *> pNonZeroRealN)
 
 -- | Parse whitespace and optional switches.
 ws :: Parser RES.Switches

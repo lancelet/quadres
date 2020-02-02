@@ -15,6 +15,21 @@ data GlyphID
     | GlyphIDShortString Char
     deriving (Eq, Show)
 
+-- | List of glyph arguments.
+newtype GlyphArgs = GlyphArgs [GlyphArg] deriving (Eq, Show)
+
+-- | Single glyph argument.
+data GlyphArg
+    = GlyphArgMirrorState MirrorState
+    | GlyphArgRotate Rotate
+    | GlyphArgScale Scale
+    | GlyphArgScaleX ScaleX
+    | GlyphArgScaleY ScaleY
+    | GlyphArgColor Color
+    | GlyphArgShadeState ShadeState
+    | GlyphArgShadePattern ShadePattern
+    deriving (Eq, Show)
+
 -- | Rotation of a glyph.
 newtype Rotate = Rotate Word16 deriving (Eq, Show)
 
