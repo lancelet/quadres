@@ -28,6 +28,30 @@ type Parsec e s a = MP.ParsecT e s Identity a
 
 type Parser a = Parsec Void Text a
 
+-- | Parse a 'RES.NamedGlyph'.
+--
+-- >>> MP.parseMaybe pNamedGlyph "A1"
+-- Just (NamedGlyph (GlyphIDGardiner "A" 1 Nothing) (GlyphArgs []) (Notes []) (Switches []))
+--
+-- >>> MP.parseMaybe pNamedGlyph "A1[shade,red,mirror]"
+-- Just (NamedGlyph (GlyphIDGardiner "A" 1 Nothing) (GlyphArgs [GlyphArgShadeState Shade,GlyphArgColor Red,GlyphArgMirrorState Mirror]) (Notes []) (Switches []))
+--
+-- >>> MP.parseMaybe pNamedGlyph "N25[bs,tbe]"
+-- Just (NamedGlyph (GlyphIDGardiner "N" 25 Nothing) (GlyphArgs [GlyphArgShadePattern (ShadePattern (SideB :| [SideS])),GlyphArgShadePattern (ShadePattern (SideT :| [SideB,SideE]))]) (Notes []) (Switches []))
+--
+-- >>> MP.parseMaybe pNamedGlyph "\"[\"[blue]"
+-- Just (NamedGlyph (GlyphIDShortString '[') (GlyphArgs [GlyphArgColor Blue]) (Notes []) (Switches []))
+--
+-- >>> MP.parseMaybe pNamedGlyph "kA^\"c\"[blue]"
+-- Just (NamedGlyph (GlyphIDMnemonic "kA") (GlyphArgs []) (Notes [Note "c" [Blue]]) (Switches []))
+pNamedGlyph :: Parser RES.NamedGlyph
+pNamedGlyph =
+    RES.NamedGlyph
+        <$> pGlyphID
+        <*> (MP.option (RES.GlyphArgs []) pGlyphArgs <* pWhitespace)
+        <*> pNotes
+        <*> pSwitches
+
 -- | Parse a 'RES.GlyphID'.
 --
 -- >>> MP.parseMaybe pGlyphID "G14"
@@ -94,6 +118,9 @@ pMnemonic = pMnemonic' (Map.keysSet Mnemonics.mnemonics)
 -- >>> ga = "[rotate=90, scale=0.4]"
 -- >>> MP.parseMaybe pGlyphArgs ga
 -- Just (GlyphArgs [GlyphArgRotate (Rotate 90),GlyphArgScale (Scale 0.40)])
+--
+-- >>> MP.parseMaybe pGlyphArgs ""
+-- Nothing
 pGlyphArgs :: Parser RES.GlyphArgs
 pGlyphArgs = RES.GlyphArgs <$> pBracketedList pGlyphArg
 

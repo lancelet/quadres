@@ -6,6 +6,10 @@ import           Data.Word                      ( Word8
                                                 , Word16
                                                 )
 
+-- | A named glyph.
+data NamedGlyph = 
+    NamedGlyph GlyphID GlyphArgs Notes Switches deriving (Eq, Show)
+
 -- | Identifier for a glyph.
 data GlyphID
     = GlyphIDGardiner Text Word16 (Maybe Char)
